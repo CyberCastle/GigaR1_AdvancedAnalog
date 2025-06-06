@@ -118,7 +118,7 @@ bool AdvancedADC::available() {
     return false;
 }
 
-DMABuffer<Sample> &AdvancedADC::read() {
+SampleBuffer AdvancedADC::read() {
     static DMABuffer<Sample> NULLBUF;
     if (descr != nullptr) {
         while (!available()) {
@@ -131,7 +131,7 @@ DMABuffer<Sample> &AdvancedADC::read() {
 
 int AdvancedADC::begin(uint32_t resolution, uint32_t sample_rate, size_t n_samples,
                        size_t n_buffers, bool start, adc_sample_time_t sample_time) {
-    
+
     ADCName instance = ADC_NP;
     // Sanity checks.
     if (resolution >= AN_ARRAY_SIZE(ADC_RES_LUT) || (descr && descr->pool)) {
@@ -142,7 +142,7 @@ int AdvancedADC::begin(uint32_t resolution, uint32_t sample_rate, size_t n_sampl
     for (size_t i=0; i<n_channels; i++) {
         adc_pins[i] =  (PinName) (adc_pins[i] & ~(ADC_PIN_ALT_MASK));
     }
-    
+
     if (adc_index >= 0 && adc_index < (int)AN_ARRAY_SIZE(adc_descr_all)) {
         descr = &adc_descr_all[adc_index];
         if (descr->pool != nullptr) {
@@ -151,7 +151,7 @@ int AdvancedADC::begin(uint32_t resolution, uint32_t sample_rate, size_t n_sampl
 
         for (size_t i = 0; instance == ADC_NP && i < AN_ARRAY_SIZE(adc_pin_alt); i++) {
             PinName pin = (PinName)(adc_pins[0] | adc_pin_alt[i]);
-            if (pinmap_find_peripheral(pin, PinMap_ADC) == NC) {
+            if ((PinName)pinmap_find_peripheral(pin, PinMap_ADC) == NC) {
                 break;
             }
 
@@ -167,7 +167,7 @@ int AdvancedADC::begin(uint32_t resolution, uint32_t sample_rate, size_t n_sampl
             PinName pin = (PinName) (adc_pins[0] | adc_pin_alt[i]); // First pin decides the ADC.
 
             // Check if pin is mapped.
-            if (pinmap_find_peripheral(pin, PinMap_ADC) == NC) {
+            if ((PinName)pinmap_find_peripheral(pin, PinMap_ADC) == NC) {
                 break;
             }
 
@@ -193,18 +193,18 @@ int AdvancedADC::begin(uint32_t resolution, uint32_t sample_rate, size_t n_sampl
 
     // Configure ADC pins.
     pinmap_pinout(adc_pins[0], PinMap_ADC);
-    
+
     uint8_t ch_init = 1;
     for (size_t i=1; i<n_channels; i++) {
         for (size_t j=0; j<AN_ARRAY_SIZE(adc_pin_alt); j++) {
             // Calculate alternate function pin.
             PinName pin = (PinName) (adc_pins[i] | adc_pin_alt[j]);
             // Check if pin is mapped.
-            if (pinmap_find_peripheral(pin, PinMap_ADC) == NC) {
+            if ((PinName)pinmap_find_peripheral(pin, PinMap_ADC) == NC) {
                 break;
             }
             // Check if pin is connected to the selected ADC.
-            if (instance == pinmap_peripheral(pin, PinMap_ADC)) {
+            if (instance == (ADCName)pinmap_peripheral(pin, PinMap_ADC)) {
                 pinmap_pinout(pin, PinMap_ADC);
                 adc_pins[i] = pin;
                 ch_init++;
@@ -259,7 +259,7 @@ int AdvancedADC::begin(uint32_t resolution, uint32_t sample_rate, size_t n_sampl
 int AdvancedADC::start(uint32_t sample_rate){
     // Initialize and configure the ADC timer.
     hal_tim_config(&descr->tim, sample_rate);
-    
+
     // Start the ADC timer. Note, if dual ADC mode is enabled,
     // this will also start ADC2.
     if (HAL_TIM_Base_Start(&descr->tim) != HAL_OK) {

@@ -48,11 +48,20 @@ class AdvancedADC {
             static_assert(sizeof ...(args) < AN_MAX_ADC_CHANNELS,
                     "A maximum of 16 channels can be sampled successively.");
 
+            // Initialize the array elements
+            for (size_t i = 0; i < AN_MAX_ADC_CHANNELS; ++i) {
+                adc_pins[i] = NC;
+            }
+
             for (auto p : {p0, args...}) {
                 adc_pins[n_channels++] = p;
             }
         }
         AdvancedADC(): n_channels(0), descr(nullptr), adc_index(-1) {
+            // Initialize the array elements
+            for (size_t i = 0; i < AN_MAX_ADC_CHANNELS; ++i) {
+                adc_pins[i] = NC;
+            }
         }
         ~AdvancedADC();
         int id();
@@ -89,13 +98,13 @@ class AdvancedADC {
 
 class AdvancedADCDual {
     private:
-        size_t n_channels;
         AdvancedADC &adc1;
         AdvancedADC &adc2;
+        size_t n_channels;
 
     public:
         AdvancedADCDual(AdvancedADC &adc1_in, AdvancedADC &adc2_in):
-            n_channels(0), adc1(adc1_in), adc2(adc2_in) {
+            adc1(adc1_in), adc2(adc2_in), n_channels(0) {
         }
         ~AdvancedADCDual();
         int begin(uint32_t resolution, uint32_t sample_rate, size_t n_samples,

@@ -89,9 +89,9 @@ class AdvancedADC {
 
 class AdvancedADCDual {
     private:
+        size_t n_channels;
         AdvancedADC &adc1;
         AdvancedADC &adc2;
-        size_t n_channels;
 
     public:
         AdvancedADCDual(AdvancedADC &adc1_in, AdvancedADC &adc2_in):

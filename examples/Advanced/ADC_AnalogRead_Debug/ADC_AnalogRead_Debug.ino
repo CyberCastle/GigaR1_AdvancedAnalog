@@ -2,16 +2,18 @@
 
 // Example that demonstrates the analogRead() helper with debug output
 
-AdvancedADC adc(A0);   // Use pin A0 on a single ADC
+AdvancedADC adc(1, A0); // Use ADC1 with pin A0
 
 void setup() {
     Serial.begin(9600);
-    while (!Serial) {}
+    while (!Serial) {
+    }
 
     // Start ADC with: resolution, sample rate, samples per channel, queue depth
     if (!adc.begin(AN_RESOLUTION_16, 16000, 32, 64)) {
         Serial.println("Failed to start analog acquisition!");
-        while (1);
+        while (1)
+            ;
     }
 }
 

@@ -1,6 +1,6 @@
 #include <AdvancedADC.h>
 
-AdvancedADC adc(A0, A1);
+AdvancedADC adc(1, A0, A1); // Use ADC1 with pins A0 and A1
 uint64_t last_millis = 0;
 
 void setup() {
@@ -9,7 +9,8 @@ void setup() {
     // Resolution, sample rate, number of samples per channel, queue depth.
     if (!adc.begin(AN_RESOLUTION_16, 16000, 32, 128)) {
         Serial.println("Failed to start analog acquisition!");
-        while (1);
+        while (1)
+            ;
     }
 }
 
@@ -19,9 +20,9 @@ void loop() {
 
         // Process the buffer.
         if (millis() - last_millis > 1) {
-            Serial.println(buf.timestamp());  // Print buffer timestamp
-            Serial.println(buf[0]);           // Print sample from first channel
-            Serial.println(buf[1]);           // Print sample from second channel
+            Serial.println(buf.timestamp()); // Print buffer timestamp
+            Serial.println(buf[0]);          // Print sample from first channel
+            Serial.println(buf[1]);          // Print sample from second channel
             last_millis = millis();
         }
 

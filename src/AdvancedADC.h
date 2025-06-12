@@ -36,80 +36,108 @@ typedef enum {
 } adc_sample_time_t;
 
 class AdvancedADC {
-    private:
-        size_t n_channels;
-        adc_descr_t *descr;
-        int adc_index;
-        PinName adc_pins[AN_MAX_ADC_CHANNELS];
+  private:
+    size_t n_channels;
+    adc_descr_t *descr;
+    int adc_index;
+    PinName adc_pins[AN_MAX_ADC_CHANNELS];
 
-    public:
-        template <typename ... T>
-        AdvancedADC(PinName p0, T ... args): n_channels(0), descr(nullptr), adc_index(-1) {
-            static_assert(sizeof ...(args) < AN_MAX_ADC_CHANNELS,
-                    "A maximum of 16 channels can be sampled successively.");
+  public:
+    /**
+     * @brief Constructor for AdvancedADC with ADC number specification
+     * @param adc_num ADC number to use (1, 2, or 3)
+     * @param p0 First analog pin to be used
+     * @param args Additional analog pins (up to 16 total channels)
+     *
+     * Creates an AdvancedADC object with a specific ADC unit and channels.
+     * The ADC number must be specified along with the channels to use.
+     */
+    template <typename... T>
+    AdvancedADC(int adc_num, PinName p0, T... args) : n_channels(0), descr(nullptr), adc_index(-1) {
+        static_assert(sizeof...(args) < AN_MAX_ADC_CHANNELS,
+                      "A maximum of 16 channels can be sampled successively.");
 
-            // Initialize the array elements
-            for (size_t i = 0; i < AN_MAX_ADC_CHANNELS; ++i) {
-                adc_pins[i] = NC;
-            }
+        // Set the ADC index based on the provided ADC number
+        if (adc_num >= 1 && adc_num <= 3) {
+            adc_index = adc_num - 1;
+        } else {
+            adc_index = -1;
+        }
 
-            for (auto p : {p0, args...}) {
-                adc_pins[n_channels++] = p;
-            }
+        // Initialize the array elements
+        for (size_t i = 0; i < AN_MAX_ADC_CHANNELS; ++i) {
+            adc_pins[i] = NC;
         }
-        AdvancedADC(): n_channels(0), descr(nullptr), adc_index(-1) {
-            // Initialize the array elements
-            for (size_t i = 0; i < AN_MAX_ADC_CHANNELS; ++i) {
-                adc_pins[i] = NC;
-            }
-        }
-        ~AdvancedADC();
-        int id();
-        bool available();
-        SampleBuffer read();
-        int begin(uint32_t resolution, uint32_t sample_rate, size_t n_samples,
-                  size_t n_buffers, bool start=true, adc_sample_time_t sample_time=AN_ADC_SAMPLETIME_8_5);
-        int begin(uint32_t resolution, uint32_t sample_rate, size_t n_samples,
-                  size_t n_buffers, size_t n_pins, PinName *pins, bool start=true,
-                  adc_sample_time_t sample_time=AN_ADC_SAMPLETIME_8_5) {
-            if (n_pins > AN_MAX_ADC_CHANNELS) {
-                n_pins = AN_MAX_ADC_CHANNELS;
-            }
-            for (size_t i = 0; i < n_pins; ++i) {
-                adc_pins[i] = pins[i];
-            }
 
-            n_channels = n_pins;
-            return begin(resolution, sample_rate, n_samples, n_buffers, start, sample_time);
+        for (auto p : {p0, args...}) {
+            adc_pins[n_channels++] = p;
         }
-        int start(uint32_t sample_rate);
-        int stop();
-        void clear();
-        size_t channels();
-        Sample analogRead(size_t channel = 0);
-        void setADC(int adc) {
-            if (adc >= 1 && adc <= 3) {
-                adc_index = adc - 1;
-            } else {
-                adc_index = -1;
-            }
+    }
+    /**
+     * @brief Default constructor for AdvancedADC
+     *
+     * Creates an AdvancedADC object without specifying ADC or channels.
+     * ADC and channels must be configured later using setADC() and begin() methods.
+     */
+    AdvancedADC() : n_channels(0), descr(nullptr), adc_index(-1) {
+        // Initialize the array elements
+        for (size_t i = 0; i < AN_MAX_ADC_CHANNELS; ++i) {
+            adc_pins[i] = NC;
         }
+    }
+    ~AdvancedADC();
+    int id();
+    bool available();
+    SampleBuffer read();
+    int begin(uint32_t resolution, uint32_t sample_rate, size_t n_samples,
+              size_t n_buffers, bool start = true, adc_sample_time_t sample_time = AN_ADC_SAMPLETIME_8_5);
+    int begin(uint32_t resolution, uint32_t sample_rate, size_t n_samples,
+              size_t n_buffers, size_t n_pins, PinName *pins, bool start = true,
+              adc_sample_time_t sample_time = AN_ADC_SAMPLETIME_8_5) {
+        if (n_pins > AN_MAX_ADC_CHANNELS) {
+            n_pins = AN_MAX_ADC_CHANNELS;
+        }
+        for (size_t i = 0; i < n_pins; ++i) {
+            adc_pins[i] = pins[i];
+        }
+
+        n_channels = n_pins;
+        return begin(resolution, sample_rate, n_samples, n_buffers, start, sample_time);
+    }
+    int start(uint32_t sample_rate);
+    int stop();
+    void clear();
+    size_t channels();
+    Sample analogRead(size_t channel = 0);
+    /**
+     * @brief Set the ADC number to use
+     * @param adc ADC number (1, 2, or 3)
+     *
+     * Sets which ADC unit to use for analog-to-digital conversion.
+     * Valid values are 1, 2, or 3 corresponding to ADC1, ADC2, and ADC3.
+     */
+    void setADC(int adc) {
+        if (adc >= 1 && adc <= 3) {
+            adc_index = adc - 1;
+        } else {
+            adc_index = -1;
+        }
+    }
 };
 
 class AdvancedADCDual {
-    private:
-        AdvancedADC &adc1;
-        AdvancedADC &adc2;
-        size_t n_channels;
+  private:
+    AdvancedADC &adc1;
+    AdvancedADC &adc2;
+    size_t n_channels;
 
-    public:
-        AdvancedADCDual(AdvancedADC &adc1_in, AdvancedADC &adc2_in):
-            adc1(adc1_in), adc2(adc2_in), n_channels(0) {
-        }
-        ~AdvancedADCDual();
-        int begin(uint32_t resolution, uint32_t sample_rate, size_t n_samples,
-                  size_t n_buffers, adc_sample_time_t sample_time=AN_ADC_SAMPLETIME_8_5);
-        int stop();
+  public:
+    AdvancedADCDual(AdvancedADC &adc1_in, AdvancedADC &adc2_in) : adc1(adc1_in), adc2(adc2_in), n_channels(0) {
+    }
+    ~AdvancedADCDual();
+    int begin(uint32_t resolution, uint32_t sample_rate, size_t n_samples,
+              size_t n_buffers, adc_sample_time_t sample_time = AN_ADC_SAMPLETIME_8_5);
+    int stop();
 };
 
 #endif // __ADVANCED_ADC_H__

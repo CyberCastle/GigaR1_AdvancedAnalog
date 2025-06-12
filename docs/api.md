@@ -4,21 +4,41 @@
 
 ### `AdvancedADC`
 
-Creates an ADC object using the specified pin(s). The ADC object can sample a single channel or multiple channels successively if more than one pin is passed to the constructor. In this case, data from multiple channels will be interleaved in sample buffers. The ADC instance can be selected manually with `setADC(adc)`. If not set, the ADC channel of the first pin determines the instance used, and the remaining channels (if any) must all belong to the same ADC instance.
+Creates an ADC object using the specified ADC number and pin(s). The ADC object can sample a single channel or multiple channels successively if more than one pin is passed to the constructor. In this case, data from multiple channels will be interleaved in sample buffers. The ADC number must be specified in the constructor to determine which ADC instance (ADC1, ADC2, or ADC3) will be used.
 
 #### Syntax
 
 ```
-AdvancedADC adc(analogPin);
+AdvancedADC adc(adc_number, analogPin);
+AdvancedADC adc(adc_number, analogPin1, analogPin2, ...);
 ```
 
 #### Parameters
 
-- Pin `A0` through `A11` can be used.
+-   `int` - **adc_number** the ADC instance number to use (1, 2, or 3).
+-   **analogPin** - Pin `A0` through `A11` can be used. Multiple pins can be specified for multi-channel sampling.
 
 #### Returns
 
 `void`.
+
+#### Example
+
+```cpp
+AdvancedADC adc1(1, A0);        // Use ADC1 with pin A0
+AdvancedADC adc2(2, A1, A2);    // Use ADC2 with pins A1 and A2
+AdvancedADC adc3(3, A3, A4, A5); // Use ADC3 with pins A3, A4, and A5
+```
+
+#### Alternative Default Constructor
+
+A default constructor is also available that creates an AdvancedADC object without specifying the ADC number or pins:
+
+```cpp
+AdvancedADC adc; // Default constructor
+```
+
+When using the default constructor, you must call `setADC()` to specify the ADC number and configure the pins using the `begin()` method with the pins parameter.
 
 ### `AdvancedADC.setADC()`
 
@@ -34,7 +54,7 @@ adc.setADC(1);
 
 #### Parameters
 
-- `int` - **adc** the ADC instance number (1–3).
+-   `int` - **adc** the ADC instance number (1–3).
 
 #### Returns
 
@@ -53,27 +73,27 @@ adc0.begin(resolution, sample_rate, n_samples, n_buffers, n_pins, pins)
 
 #### Parameters
 
-- `enum` - **resolution** the sampling resolution (can be 8, 10, 12, 14 or 16 bits).
-  - `AN_RESOLUTION_8`
-  - `AN_RESOLUTION_10`
-  - `AN_RESOLUTION_12`
-  - `AN_RESOLUTION_14`
-  - `AN_RESOLUTION_16`
-- `int` - **sample_rate** - the sampling rate / frequency in Hertz, e.g. `16000`.
-- `int` - **n_samples** - the number of samples per sample buffer. See [SampleBuffer](#samplebuffer) for more details.
-- `int` - **n_buffers** - the number of sample buffers in the queue. See [SampleBuffer](#samplebuffer) for more details.
-- `int` - **n_pins** - number of entries in the `pins` array when specifying channels dynamically.
-- `PinName[]` - **pins** - array of ADC pins (e.g. `A0`, `A1`) used to configure the channels.
-- `bool` - **start** - if true (the default) the ADC will start sampling immediately, otherwise `start()` can be called later to start the ADC.
-- `enum` - **sample_time** - the sampling time in cycles (the default is 8.5 cycles).
-  - `AN_ADC_SAMPLETIME_1_5`
-  - `AN_ADC_SAMPLETIME_2_5`
-  - `AN_ADC_SAMPLETIME_8_5`
-  - `AN_ADC_SAMPLETIME_16_5`
-  - `AN_ADC_SAMPLETIME_32_5`
-  - `AN_ADC_SAMPLETIME_64_5`
-  - `AN_ADC_SAMPLETIME_387_5`
-  - `AN_ADC_SAMPLETIME_810_5`
+-   `enum` - **resolution** the sampling resolution (can be 8, 10, 12, 14 or 16 bits).
+    -   `AN_RESOLUTION_8`
+    -   `AN_RESOLUTION_10`
+    -   `AN_RESOLUTION_12`
+    -   `AN_RESOLUTION_14`
+    -   `AN_RESOLUTION_16`
+-   `int` - **sample_rate** - the sampling rate / frequency in Hertz, e.g. `16000`.
+-   `int` - **n_samples** - the number of samples per sample buffer. See [SampleBuffer](#samplebuffer) for more details.
+-   `int` - **n_buffers** - the number of sample buffers in the queue. See [SampleBuffer](#samplebuffer) for more details.
+-   `int` - **n_pins** - number of entries in the `pins` array when specifying channels dynamically.
+-   `PinName[]` - **pins** - array of ADC pins (e.g. `A0`, `A1`) used to configure the channels.
+-   `bool` - **start** - if true (the default) the ADC will start sampling immediately, otherwise `start()` can be called later to start the ADC.
+-   `enum` - **sample_time** - the sampling time in cycles (the default is 8.5 cycles).
+    -   `AN_ADC_SAMPLETIME_1_5`
+    -   `AN_ADC_SAMPLETIME_2_5`
+    -   `AN_ADC_SAMPLETIME_8_5`
+    -   `AN_ADC_SAMPLETIME_16_5`
+    -   `AN_ADC_SAMPLETIME_32_5`
+    -   `AN_ADC_SAMPLETIME_64_5`
+    -   `AN_ADC_SAMPLETIME_387_5`
+    -   `AN_ADC_SAMPLETIME_810_5`
 
 #### Returns
 
@@ -127,7 +147,7 @@ adc.stop()
 
 #### Returns
 
-- `1`
+-   `1`
 
 ## AdvancedADCDual
 
@@ -143,8 +163,8 @@ AdvancedADCDual adc_dual(adc1, adc2);
 
 #### Parameters
 
-- `AdvancedADC` - **adc1** - the first ADC (must be ADC1).
-- `AdvancedADC` - **adc2** - the second ADC (must be ADC2).
+-   `AdvancedADC` - **adc1** - the first ADC (must be ADC1).
+-   `AdvancedADC` - **adc2** - the second ADC (must be ADC2).
 
 #### Returns
 
@@ -162,24 +182,24 @@ adc_dual.begin(resolution, sample_rate, n_samples, n_buffers)
 
 #### Parameters
 
-- `enum` - **resolution** the sampling resolution (can be 8, 10, 12, 14 or 16 bits).
-  - `AN_RESOLUTION_8`
-  - `AN_RESOLUTION_10`
-  - `AN_RESOLUTION_12`
-  - `AN_RESOLUTION_14`
-  - `AN_RESOLUTION_16`
-- `int` - **sample_rate** - the sampling rate / frequency in Hertz, e.g. `16000`.
-- `int` - **n_samples** - the number of samples per sample buffer. See [SampleBuffer](#samplebuffer) for more details.
-- `int` - **n_buffers** - the number of sample buffers in the queue. See [SampleBuffer](#samplebuffer) for more details.
-- `enum` - **sample_time** - the sampling time in cycles (the default is 8.5 cycles).
-  - `AN_ADC_SAMPLETIME_1_5`
-  - `AN_ADC_SAMPLETIME_2_5`
-  - `AN_ADC_SAMPLETIME_8_5`
-  - `AN_ADC_SAMPLETIME_16_5`
-  - `AN_ADC_SAMPLETIME_32_5`
-  - `AN_ADC_SAMPLETIME_64_5`
-  - `AN_ADC_SAMPLETIME_387_5`
-  - `AN_ADC_SAMPLETIME_810_5`
+-   `enum` - **resolution** the sampling resolution (can be 8, 10, 12, 14 or 16 bits).
+    -   `AN_RESOLUTION_8`
+    -   `AN_RESOLUTION_10`
+    -   `AN_RESOLUTION_12`
+    -   `AN_RESOLUTION_14`
+    -   `AN_RESOLUTION_16`
+-   `int` - **sample_rate** - the sampling rate / frequency in Hertz, e.g. `16000`.
+-   `int` - **n_samples** - the number of samples per sample buffer. See [SampleBuffer](#samplebuffer) for more details.
+-   `int` - **n_buffers** - the number of sample buffers in the queue. See [SampleBuffer](#samplebuffer) for more details.
+-   `enum` - **sample_time** - the sampling time in cycles (the default is 8.5 cycles).
+    -   `AN_ADC_SAMPLETIME_1_5`
+    -   `AN_ADC_SAMPLETIME_2_5`
+    -   `AN_ADC_SAMPLETIME_8_5`
+    -   `AN_ADC_SAMPLETIME_16_5`
+    -   `AN_ADC_SAMPLETIME_32_5`
+    -   `AN_ADC_SAMPLETIME_64_5`
+    -   `AN_ADC_SAMPLETIME_387_5`
+    -   `AN_ADC_SAMPLETIME_810_5`
 
 #### Returns
 
@@ -229,7 +249,7 @@ buf.size()
 
 #### Returns
 
-- The buffer size in samples.
+-   The buffer size in samples.
 
 ### `SampleBuffer.bytes()`
 
@@ -241,7 +261,7 @@ buf.bytes()
 
 #### Returns
 
-- The buffer size in bytes.
+-   The buffer size in bytes.
 
 ### `SampleBuffer.flush()`
 
@@ -269,7 +289,7 @@ buf.timestamp()
 
 #### Returns
 
-- Timestamp as `int`.
+-   Timestamp as `int`.
 
 ### `SampleBuffer.channels()`
 
@@ -281,7 +301,7 @@ buf.channels()
 
 #### Returns
 
-- Timestamp as `int`.
+-   Timestamp as `int`.
 
 ### `SampleBuffer.setflags()`
 

@@ -1,8 +1,8 @@
 // This example shows how to use 2 ADC simultaneously.
 #include <AdvancedADC.h>
 
-AdvancedADC adc1(A0);
-AdvancedADC adc2(A1);
+AdvancedADC adc1(1, A0); // Use ADC1 with pin A0
+AdvancedADC adc2(2, A1); // Use ADC2 with pin A1
 uint64_t last_millis = 0;
 
 void setup() {
@@ -11,12 +11,14 @@ void setup() {
     // Resolution, sample rate, number of samples per channel, queue depth.
     if (!adc1.begin(AN_RESOLUTION_16, 16000, 32, 64)) {
         Serial.println("Failed to start analog acquisition!");
-        while (1);
+        while (1)
+            ;
     }
 
     if (!adc2.begin(AN_RESOLUTION_16, 8000, 32, 64)) {
         Serial.println("Failed to start analog acquisition!");
-        while (1);
+        while (1)
+            ;
     }
 }
 

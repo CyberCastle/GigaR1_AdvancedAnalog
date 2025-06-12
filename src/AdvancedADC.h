@@ -24,17 +24,31 @@
 
 struct adc_descr_t;
 
+/**
+ * @brief ADC sampling time enumeration
+ *
+ * Defines the available sampling times for ADC conversion in cycles.
+ * Longer sampling times provide more accurate results but reduce maximum sampling rate.
+ */
 typedef enum {
-    AN_ADC_SAMPLETIME_1_5 = ADC_SAMPLETIME_1CYCLE_5,
-    AN_ADC_SAMPLETIME_2_5 = ADC_SAMPLETIME_2CYCLES_5,
-    AN_ADC_SAMPLETIME_8_5 = ADC_SAMPLETIME_8CYCLES_5,
-    AN_ADC_SAMPLETIME_16_5 = ADC_SAMPLETIME_16CYCLES_5,
-    AN_ADC_SAMPLETIME_32_5 = ADC_SAMPLETIME_32CYCLES_5,
-    AN_ADC_SAMPLETIME_64_5 = ADC_SAMPLETIME_64CYCLES_5,
-    AN_ADC_SAMPLETIME_387_5 = ADC_SAMPLETIME_387CYCLES_5,
-    AN_ADC_SAMPLETIME_810_5 = ADC_SAMPLETIME_810CYCLES_5,
+    AN_ADC_SAMPLETIME_1_5 = ADC_SAMPLETIME_1CYCLE_5,      ///< 1.5 cycles sampling time
+    AN_ADC_SAMPLETIME_2_5 = ADC_SAMPLETIME_2CYCLES_5,     ///< 2.5 cycles sampling time
+    AN_ADC_SAMPLETIME_8_5 = ADC_SAMPLETIME_8CYCLES_5,     ///< 8.5 cycles sampling time (default)
+    AN_ADC_SAMPLETIME_16_5 = ADC_SAMPLETIME_16CYCLES_5,   ///< 16.5 cycles sampling time
+    AN_ADC_SAMPLETIME_32_5 = ADC_SAMPLETIME_32CYCLES_5,   ///< 32.5 cycles sampling time
+    AN_ADC_SAMPLETIME_64_5 = ADC_SAMPLETIME_64CYCLES_5,   ///< 64.5 cycles sampling time
+    AN_ADC_SAMPLETIME_387_5 = ADC_SAMPLETIME_387CYCLES_5, ///< 387.5 cycles sampling time
+    AN_ADC_SAMPLETIME_810_5 = ADC_SAMPLETIME_810CYCLES_5, ///< 810.5 cycles sampling time
 } adc_sample_time_t;
 
+/**
+ * @brief Advanced ADC class for high-performance analog sampling
+ *
+ * This class provides advanced ADC functionality for the STM32H7 microcontroller,
+ * supporting multiple channels, high sampling rates, and buffered data acquisition.
+ * It can utilize any of the three available ADC instances (ADC1, ADC2, ADC3) and
+ * supports both single-channel and multi-channel sampling configurations.
+ */
 class AdvancedADC {
   private:
     size_t n_channels;
@@ -85,12 +99,70 @@ class AdvancedADC {
             adc_pins[i] = NC;
         }
     }
+
+    /**
+     * @brief Destructor for AdvancedADC
+     *
+     * Cleans up and releases resources used by the AdvancedADC object.
+     */
     ~AdvancedADC();
+
+    /**
+     * @brief Get the ADC instance ID
+     * @return ADC instance ID (0-2 for ADC1-ADC3, or -1 if not set)
+     *
+     * Returns the zero-based index of the ADC instance being used.
+     */
     int id();
+
+    /**
+     * @brief Check if sample data is available
+     * @return true if sample data is available to read, false otherwise
+     *
+     * Returns true when there is at least one complete sample buffer ready to be read.
+     */
     bool available();
+
+    /**
+     * @brief Read a sample buffer
+     * @return SampleBuffer containing the sampled data
+     *
+     * Reads and returns the next available sample buffer from the ADC queue.
+     * Call available() first to check if data is ready.
+     */
     SampleBuffer read();
+
+    /**
+     * @brief Initialize and configure the ADC
+     * @param resolution ADC resolution (8, 10, 12, 14, or 16 bits)
+     * @param sample_rate Sampling rate in Hz
+     * @param n_samples Number of samples per buffer per channel
+     * @param n_buffers Number of buffers in the queue
+     * @param start Whether to start sampling immediately (default: true)
+     * @param sample_time ADC sampling time in cycles (default: AN_ADC_SAMPLETIME_8_5)
+     * @return 0 on success, negative value on error
+     *
+     * Configures the ADC with the specified parameters and optionally starts sampling.
+     * To reconfigure, call stop() first.
+     */
     int begin(uint32_t resolution, uint32_t sample_rate, size_t n_samples,
               size_t n_buffers, bool start = true, adc_sample_time_t sample_time = AN_ADC_SAMPLETIME_8_5);
+
+    /**
+     * @brief Initialize and configure the ADC with dynamic pin configuration
+     * @param resolution ADC resolution (8, 10, 12, 14, or 16 bits)
+     * @param sample_rate Sampling rate in Hz
+     * @param n_samples Number of samples per buffer per channel
+     * @param n_buffers Number of buffers in the queue
+     * @param n_pins Number of pins in the pins array
+     * @param pins Array of PinName values specifying which pins to use
+     * @param start Whether to start sampling immediately (default: true)
+     * @param sample_time ADC sampling time in cycles (default: AN_ADC_SAMPLETIME_8_5)
+     * @return 0 on success, negative value on error
+     *
+     * Configures the ADC with the specified parameters and pin array.
+     * This version allows dynamic configuration of pins at runtime.
+     */
     int begin(uint32_t resolution, uint32_t sample_rate, size_t n_samples,
               size_t n_buffers, size_t n_pins, PinName *pins, bool start = true,
               adc_sample_time_t sample_time = AN_ADC_SAMPLETIME_8_5) {
@@ -104,10 +176,51 @@ class AdvancedADC {
         n_channels = n_pins;
         return begin(resolution, sample_rate, n_samples, n_buffers, start, sample_time);
     }
+
+    /**
+     * @brief Start ADC sampling
+     * @param sample_rate Sampling rate in Hz
+     * @return 0 on success, negative value on error
+     *
+     * Starts the ADC sampling at the specified rate. The ADC must be
+     * initialized with begin() before calling this method.
+     */
     int start(uint32_t sample_rate);
+
+    /**
+     * @brief Stop ADC sampling
+     * @return 0 on success, negative value on error
+     *
+     * Stops the ADC sampling and releases associated resources.
+     * Call this method before reconfiguring with begin().
+     */
     int stop();
+
+    /**
+     * @brief Clear all sample buffers
+     *
+     * Clears all pending sample buffers from the queue.
+     * Useful for discarding old data before starting fresh sampling.
+     */
     void clear();
+
+    /**
+     * @brief Get the number of configured channels
+     * @return Number of channels configured for this ADC instance
+     *
+     * Returns the total number of analog channels that have been configured
+     * for sampling on this ADC instance.
+     */
     size_t channels();
+
+    /**
+     * @brief Read a single sample from a specific channel
+     * @param channel Channel number to read from (default: 0)
+     * @return Sample value from the specified channel
+     *
+     * Reads a single sample value from the specified channel. This is a
+     * convenience method for debugging and simple applications.
+     */
     Sample analogRead(size_t channel = 0);
     /**
      * @brief Set the ADC number to use
@@ -125,6 +238,12 @@ class AdvancedADC {
     }
 };
 
+/**
+ * @brief Dual ADC class for simultaneous sampling on two ADC instances
+ *
+ * This class allows simultaneous sampling using two separate ADC instances,
+ * enabling higher throughput and more complex sampling scenarios.
+ */
 class AdvancedADCDual {
   private:
     AdvancedADC &adc1;
@@ -132,11 +251,45 @@ class AdvancedADCDual {
     size_t n_channels;
 
   public:
+    /**
+     * @brief Constructor for AdvancedADCDual
+     * @param adc1_in Reference to the first ADC instance
+     * @param adc2_in Reference to the second ADC instance
+     *
+     * Creates a dual ADC object that can coordinate sampling between
+     * two separate AdvancedADC instances.
+     */
     AdvancedADCDual(AdvancedADC &adc1_in, AdvancedADC &adc2_in) : adc1(adc1_in), adc2(adc2_in), n_channels(0) {
     }
+
+    /**
+     * @brief Destructor for AdvancedADCDual
+     *
+     * Cleans up and releases resources used by the AdvancedADCDual object.
+     */
     ~AdvancedADCDual();
+
+    /**
+     * @brief Initialize and configure both ADC instances for dual mode
+     * @param resolution ADC resolution (8, 10, 12, 14, or 16 bits)
+     * @param sample_rate Sampling rate in Hz
+     * @param n_samples Number of samples per buffer per channel
+     * @param n_buffers Number of buffers in the queue
+     * @param sample_time ADC sampling time in cycles (default: AN_ADC_SAMPLETIME_8_5)
+     * @return 0 on success, negative value on error
+     *
+     * Configures both ADC instances for synchronized dual-mode operation.
+     * Both ADCs will sample simultaneously at the specified rate.
+     */
     int begin(uint32_t resolution, uint32_t sample_rate, size_t n_samples,
               size_t n_buffers, adc_sample_time_t sample_time = AN_ADC_SAMPLETIME_8_5);
+
+    /**
+     * @brief Stop both ADC instances
+     * @return 0 on success, negative value on error
+     *
+     * Stops sampling on both ADC instances and releases associated resources.
+     */
     int stop();
 };
 

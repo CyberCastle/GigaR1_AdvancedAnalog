@@ -76,11 +76,19 @@ static adc_descr_t *adc_descr_get(ADC_TypeDef *adc) {
     return NULL;
 }
 
-static void dac_descr_deinit(adc_descr_t *descr, bool dealloc_pool) {
+static void adc_descr_stop(adc_descr_t *descr) {
     if (descr) {
         HAL_TIM_Base_Stop(&descr->tim);
         HAL_ADC_Stop_DMA(&descr->adc);
+    }
+}
 
+static void adc_descr_deinit(adc_descr_t *descr) {
+    if (descr) {
+        // Stop conversion first
+        adc_descr_stop(descr);
+
+        // Release DMA buffers
         for (size_t i=0; i<AN_ARRAY_SIZE(descr->dmabuf); i++) {
             if (descr->dmabuf[i]) {
                 descr->dmabuf[i]->release();
@@ -88,10 +96,9 @@ static void dac_descr_deinit(adc_descr_t *descr, bool dealloc_pool) {
             }
         }
 
-        if (dealloc_pool) {
-            if (descr->pool) {
-                delete descr->pool;
-            }
+        // Deallocate buffer pool
+        if (descr->pool) {
+            delete descr->pool;
             descr->pool = nullptr;
         }
     }
@@ -238,16 +245,8 @@ int AdvancedADC::begin(uint32_t resolution, uint32_t sample_rate, size_t n_sampl
         return 0;
     }
 
-    // Link DMA handle to ADC handle, and start the ADC.
+    // Link DMA handle to ADC handle.
     __HAL_LINKDMA(&descr->adc, DMA_Handle, descr->dma);
-    if (HAL_ADC_Start_DMA(&descr->adc, (uint32_t *) descr->dmabuf[0]->data(), descr->dmabuf[0]->size()) != HAL_OK) {
-        return 0;
-    }
-
-    // Re/enable DMA double buffer mode.
-    HAL_NVIC_DisableIRQ(descr->dma_irqn);
-    hal_dma_enable_dbm(&descr->dma, descr->dmabuf[0]->data(), descr->dmabuf[1]->data());
-    HAL_NVIC_EnableIRQ(descr->dma_irqn);
 
     if (start) {
         return this->start(sample_rate);
@@ -257,7 +256,25 @@ int AdvancedADC::begin(uint32_t resolution, uint32_t sample_rate, size_t n_sampl
 }
 
 int AdvancedADC::start(uint32_t sample_rate){
-    // Initialize and configure the ADC timer.
+    if (descr == nullptr || descr->pool == nullptr) {
+        // ADC not initialized, call begin() first
+        return 0;
+    }
+
+    // Stop any ongoing conversion
+    adc_descr_stop(descr);
+
+    // Restart ADC with DMA
+    if (HAL_ADC_Start_DMA(&descr->adc, (uint32_t *) descr->dmabuf[0]->data(), descr->dmabuf[0]->size()) != HAL_OK) {
+        return 0;
+    }
+
+    // Re/enable DMA double buffer mode
+    HAL_NVIC_DisableIRQ(descr->dma_irqn);
+    hal_dma_enable_dbm(&descr->dma, descr->dmabuf[0]->data(), descr->dmabuf[1]->data());
+    HAL_NVIC_EnableIRQ(descr->dma_irqn);
+
+    // Initialize and configure the ADC timer
     hal_tim_config(&descr->tim, sample_rate);
 
     // Start the ADC timer. Note, if dual ADC mode is enabled,
@@ -270,7 +287,19 @@ int AdvancedADC::start(uint32_t sample_rate){
 }
 
 int AdvancedADC::stop() {
-    dac_descr_deinit(descr, true);
+    if (descr == nullptr) {
+        return 0;
+    }
+    adc_descr_stop(descr);
+    return 1;
+}
+
+int AdvancedADC::end() {
+    if (descr == nullptr) {
+        return 0;
+    }
+    adc_descr_deinit(descr);
+    descr = nullptr;
     return 1;
 }
 
@@ -318,7 +347,7 @@ size_t AdvancedADC::channels() {
 }
 
 AdvancedADC::~AdvancedADC() {
-    dac_descr_deinit(descr, true);
+    adc_descr_deinit(descr);
 }
 
 int AdvancedADCDual::begin(uint32_t resolution, uint32_t sample_rate, size_t n_samples,
@@ -352,7 +381,7 @@ int AdvancedADCDual::begin(uint32_t resolution, uint32_t sample_rate, size_t n_s
     return adc1.start(sample_rate);
 }
 
-int AdvancedADCDual:: stop() {
+int AdvancedADCDual::stop() {
     adc1.stop();
     adc2.stop();
     // Disable dual mode.
@@ -360,8 +389,15 @@ int AdvancedADCDual:: stop() {
     return 1;
 }
 
-AdvancedADCDual::~AdvancedADCDual() {
+int AdvancedADCDual::end() {
     stop();
+    adc1.end();
+    adc2.end();
+    return 1;
+}
+
+AdvancedADCDual::~AdvancedADCDual() {
+    end();
 }
 
 extern "C" {

@@ -191,10 +191,20 @@ class AdvancedADC {
      * @brief Stop ADC sampling
      * @return 0 on success, negative value on error
      *
-     * Stops the ADC sampling and releases associated resources.
-     * Call this method before reconfiguring with begin().
+     * Stops the ADC sampling but preserves the configuration.
+     * Call start() to resume sampling with the same configuration.
      */
     int stop();
+
+    /**
+     * @brief End ADC operation and release all resources
+     * @return 0 on success, negative value on error
+     *
+     * Stops the ADC sampling and releases all associated resources
+     * including DMA buffers and memory pools. Call this method to
+     * completely free resources before reconfiguring with begin().
+     */
+    int end();
 
     /**
      * @brief Clear all sample buffers
@@ -288,9 +298,20 @@ class AdvancedADCDual {
      * @brief Stop both ADC instances
      * @return 0 on success, negative value on error
      *
-     * Stops sampling on both ADC instances and releases associated resources.
+     * Stops sampling on both ADC instances but preserves the configuration.
+     * Call begin() again to resume sampling with the same configuration.
      */
     int stop();
+
+    /**
+     * @brief End both ADC instances and release all resources
+     * @return 0 on success, negative value on error
+     *
+     * Stops sampling on both ADC instances and releases all associated
+     * resources. Call this method to completely free resources before
+     * reconfiguring with begin().
+     */
+    int end();
 };
 
 #endif // __ADVANCED_ADC_H__

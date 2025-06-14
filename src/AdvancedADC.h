@@ -140,13 +140,13 @@ class AdvancedADC {
      * @param n_buffers Number of buffers in the queue
      * @param start Whether to start sampling immediately (default: true)
      * @param sample_time ADC sampling time in cycles (default: AN_ADC_SAMPLETIME_8_5)
-     * @return 0 on success, negative value on error
+     * @return true on success, false on error
      *
      * Configures the ADC with the specified parameters and optionally starts sampling.
      * To reconfigure, call stop() first.
      */
-    int begin(uint32_t resolution, uint32_t sample_rate, size_t n_samples,
-              size_t n_buffers, bool start = true, adc_sample_time_t sample_time = AN_ADC_SAMPLETIME_8_5);
+    bool begin(uint32_t resolution, uint32_t sample_rate, size_t n_samples,
+               size_t n_buffers, bool start = true, adc_sample_time_t sample_time = AN_ADC_SAMPLETIME_8_5);
 
     /**
      * @brief Initialize and configure the ADC with dynamic pin configuration
@@ -158,14 +158,14 @@ class AdvancedADC {
      * @param pins Array of PinName values specifying which pins to use
      * @param start Whether to start sampling immediately (default: true)
      * @param sample_time ADC sampling time in cycles (default: AN_ADC_SAMPLETIME_8_5)
-     * @return 0 on success, negative value on error
+     * @return true on success, false on error
      *
      * Configures the ADC with the specified parameters and pin array.
      * This version allows dynamic configuration of pins at runtime.
      */
-    int begin(uint32_t resolution, uint32_t sample_rate, size_t n_samples,
-              size_t n_buffers, size_t n_pins, PinName *pins, bool start = true,
-              adc_sample_time_t sample_time = AN_ADC_SAMPLETIME_8_5) {
+    bool begin(uint32_t resolution, uint32_t sample_rate, size_t n_samples,
+               size_t n_buffers, size_t n_pins, PinName *pins, bool start = true,
+               adc_sample_time_t sample_time = AN_ADC_SAMPLETIME_8_5) {
         if (n_pins > AN_MAX_ADC_CHANNELS) {
             n_pins = AN_MAX_ADC_CHANNELS;
         }
@@ -180,31 +180,31 @@ class AdvancedADC {
     /**
      * @brief Start ADC sampling
      * @param sample_rate Sampling rate in Hz
-     * @return 0 on success, negative value on error
+     * @return true on success, false on error
      *
      * Starts the ADC sampling at the specified rate. The ADC must be
      * initialized with begin() before calling this method.
      */
-    int start(uint32_t sample_rate);
+    bool start(uint32_t sample_rate);
 
     /**
      * @brief Stop ADC sampling
-     * @return 0 on success, negative value on error
+     * @return true on success, false on error
      *
      * Stops the ADC sampling but preserves the configuration.
      * Call start() to resume sampling with the same configuration.
      */
-    int stop();
+    bool stop();
 
     /**
      * @brief End ADC operation and release all resources
-     * @return 0 on success, negative value on error
+     * @return true on success, false on error
      *
      * Stops the ADC sampling and releases all associated resources
      * including DMA buffers and memory pools. Call this method to
      * completely free resources before reconfiguring with begin().
      */
-    int end();
+    bool end();
 
     /**
      * @brief Clear all sample buffers
@@ -286,32 +286,32 @@ class AdvancedADCDual {
      * @param n_samples Number of samples per buffer per channel
      * @param n_buffers Number of buffers in the queue
      * @param sample_time ADC sampling time in cycles (default: AN_ADC_SAMPLETIME_8_5)
-     * @return 0 on success, negative value on error
+     * @return true on success, false on error
      *
      * Configures both ADC instances for synchronized dual-mode operation.
      * Both ADCs will sample simultaneously at the specified rate.
      */
-    int begin(uint32_t resolution, uint32_t sample_rate, size_t n_samples,
-              size_t n_buffers, adc_sample_time_t sample_time = AN_ADC_SAMPLETIME_8_5);
+    bool begin(uint32_t resolution, uint32_t sample_rate, size_t n_samples,
+               size_t n_buffers, adc_sample_time_t sample_time = AN_ADC_SAMPLETIME_8_5);
 
     /**
      * @brief Stop both ADC instances
-     * @return 0 on success, negative value on error
+     * @return true on success, false on error
      *
      * Stops sampling on both ADC instances but preserves the configuration.
      * Call begin() again to resume sampling with the same configuration.
      */
-    int stop();
+    bool stop();
 
     /**
      * @brief End both ADC instances and release all resources
-     * @return 0 on success, negative value on error
+     * @return true on success, false on error
      *
      * Stops sampling on both ADC instances and releases all associated
      * resources. Call this method to completely free resources before
      * reconfiguring with begin().
      */
-    int end();
+    bool end();
 };
 
 #endif // __ADVANCED_ADC_H__

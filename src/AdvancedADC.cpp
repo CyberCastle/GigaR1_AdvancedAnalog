@@ -17,19 +17,19 @@
   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+#include "AdvancedADC.h"
 #include "Arduino.h"
 #include "HALConfig.h"
-#include "AdvancedADC.h"
 
-#define ADC_NP  ((ADCName) NC)
-#define ADC_PIN_ALT_MASK    (uint32_t) (ALT0 | ALT1 )
+#define ADC_NP ((ADCName)NC)
+#define ADC_PIN_ALT_MASK (uint32_t)(ALT0 | ALT1)
 
 struct adc_descr_t {
     ADC_HandleTypeDef adc;
     DMA_HandleTypeDef dma;
     IRQn_Type dma_irqn;
     TIM_HandleTypeDef tim;
-    uint32_t  tim_trig;
+    uint32_t tim_trig;
     DMAPool<Sample> *pool;
     DMABuffer<Sample> *dmabuf[2];
 };
@@ -37,16 +37,17 @@ struct adc_descr_t {
 static uint32_t adc_pin_alt[3] = {0, ALT0, ALT1};
 
 static adc_descr_t adc_descr_all[3] = {
-    {{ADC1}, {DMA1_Stream1, {DMA_REQUEST_ADC1}}, DMA1_Stream1_IRQn, {TIM1}, ADC_EXTERNALTRIG_T1_TRGO,
-        nullptr, {nullptr, nullptr}},
-    {{ADC2}, {DMA1_Stream2, {DMA_REQUEST_ADC2}}, DMA1_Stream2_IRQn, {TIM2}, ADC_EXTERNALTRIG_T2_TRGO,
-        nullptr, {nullptr, nullptr}},
-    {{ADC3}, {DMA1_Stream3, {DMA_REQUEST_ADC3}}, DMA1_Stream3_IRQn, {TIM3}, ADC_EXTERNALTRIG_T3_TRGO,
-        nullptr, {nullptr, nullptr}},
+    {{ADC1}, {DMA1_Stream1, {DMA_REQUEST_ADC1}}, DMA1_Stream1_IRQn, {TIM1}, ADC_EXTERNALTRIG_T1_TRGO, nullptr, {nullptr, nullptr}},
+    {{ADC2}, {DMA1_Stream2, {DMA_REQUEST_ADC2}}, DMA1_Stream2_IRQn, {TIM2}, ADC_EXTERNALTRIG_T2_TRGO, nullptr, {nullptr, nullptr}},
+    {{ADC3}, {DMA1_Stream3, {DMA_REQUEST_ADC3}}, DMA1_Stream3_IRQn, {TIM3}, ADC_EXTERNALTRIG_T3_TRGO, nullptr, {nullptr, nullptr}},
 };
 
 static uint32_t ADC_RES_LUT[] = {
-    ADC_RESOLUTION_8B, ADC_RESOLUTION_10B, ADC_RESOLUTION_12B, ADC_RESOLUTION_14B, ADC_RESOLUTION_16B,
+    ADC_RESOLUTION_8B,
+    ADC_RESOLUTION_10B,
+    ADC_RESOLUTION_12B,
+    ADC_RESOLUTION_14B,
+    ADC_RESOLUTION_16B,
 };
 
 extern "C" {
@@ -89,7 +90,7 @@ static void adc_descr_deinit(adc_descr_t *descr) {
         adc_descr_stop(descr);
 
         // Release DMA buffers
-        for (size_t i=0; i<AN_ARRAY_SIZE(descr->dmabuf); i++) {
+        for (size_t i = 0; i < AN_ARRAY_SIZE(descr->dmabuf); i++) {
             if (descr->dmabuf[i]) {
                 descr->dmabuf[i]->release();
                 descr->dmabuf[i] = nullptr;
@@ -136,24 +137,24 @@ SampleBuffer AdvancedADC::read() {
     return NULLBUF;
 }
 
-int AdvancedADC::begin(uint32_t resolution, uint32_t sample_rate, size_t n_samples,
-                       size_t n_buffers, bool start, adc_sample_time_t sample_time) {
+bool AdvancedADC::begin(uint32_t resolution, uint32_t sample_rate, size_t n_samples,
+                        size_t n_buffers, bool start, adc_sample_time_t sample_time) {
 
     ADCName instance = ADC_NP;
     // Sanity checks.
     if (resolution >= AN_ARRAY_SIZE(ADC_RES_LUT) || (descr && descr->pool)) {
-        return 0;
+        return false;
     }
 
     // Clear ALTx pin.
-    for (size_t i=0; i<n_channels; i++) {
-        adc_pins[i] =  (PinName) (adc_pins[i] & ~(ADC_PIN_ALT_MASK));
+    for (size_t i = 0; i < n_channels; i++) {
+        adc_pins[i] = (PinName)(adc_pins[i] & ~(ADC_PIN_ALT_MASK));
     }
 
     if (adc_index >= 0 && adc_index < (int)AN_ARRAY_SIZE(adc_descr_all)) {
         descr = &adc_descr_all[adc_index];
         if (descr->pool != nullptr) {
-            return 0;
+            return false;
         }
 
         for (size_t i = 0; instance == ADC_NP && i < AN_ARRAY_SIZE(adc_pin_alt); i++) {
@@ -162,16 +163,16 @@ int AdvancedADC::begin(uint32_t resolution, uint32_t sample_rate, size_t n_sampl
                 break;
             }
 
-            if (descr->adc.Instance == ((ADC_TypeDef*)pinmap_peripheral(pin, PinMap_ADC))) {
+            if (descr->adc.Instance == ((ADC_TypeDef *)pinmap_peripheral(pin, PinMap_ADC))) {
                 instance = (ADCName)pinmap_peripheral(pin, PinMap_ADC);
                 adc_pins[0] = pin;
             }
         }
     } else {
         // Find an ADC that can be used with these set of pins/channels.
-        for (size_t i=0; instance == ADC_NP && i<AN_ARRAY_SIZE(adc_pin_alt); i++) {
+        for (size_t i = 0; instance == ADC_NP && i < AN_ARRAY_SIZE(adc_pin_alt); i++) {
             // Calculate alternate function pin.
-            PinName pin = (PinName) (adc_pins[0] | adc_pin_alt[i]); // First pin decides the ADC.
+            PinName pin = (PinName)(adc_pins[0] | adc_pin_alt[i]); // First pin decides the ADC.
 
             // Check if pin is mapped.
             if ((PinName)pinmap_find_peripheral(pin, PinMap_ADC) == NC) {
@@ -179,11 +180,11 @@ int AdvancedADC::begin(uint32_t resolution, uint32_t sample_rate, size_t n_sampl
             }
 
             // Find the first free ADC according to the available ADCs on pin.
-            for (size_t j=0; instance == ADC_NP && j<AN_ARRAY_SIZE(adc_descr_all); j++) {
+            for (size_t j = 0; instance == ADC_NP && j < AN_ARRAY_SIZE(adc_descr_all); j++) {
                 descr = &adc_descr_all[j];
                 if (descr->pool == nullptr) {
-                    ADCName tmp_instance = (ADCName) pinmap_peripheral(pin, PinMap_ADC);
-                    if (descr->adc.Instance == ((ADC_TypeDef*) tmp_instance)) {
+                    ADCName tmp_instance = (ADCName)pinmap_peripheral(pin, PinMap_ADC);
+                    if (descr->adc.Instance == ((ADC_TypeDef *)tmp_instance)) {
                         instance = tmp_instance;
                         adc_pins[0] = pin;
                     }
@@ -195,17 +196,17 @@ int AdvancedADC::begin(uint32_t resolution, uint32_t sample_rate, size_t n_sampl
     if (instance == ADC_NP) {
         // Couldn't find a free ADC/descriptor.
         descr = nullptr;
-        return 0;
+        return false;
     }
 
     // Configure ADC pins.
     pinmap_pinout(adc_pins[0], PinMap_ADC);
 
     uint8_t ch_init = 1;
-    for (size_t i=1; i<n_channels; i++) {
-        for (size_t j=0; j<AN_ARRAY_SIZE(adc_pin_alt); j++) {
+    for (size_t i = 1; i < n_channels; i++) {
+        for (size_t j = 0; j < AN_ARRAY_SIZE(adc_pin_alt); j++) {
             // Calculate alternate function pin.
-            PinName pin = (PinName) (adc_pins[i] | adc_pin_alt[j]);
+            PinName pin = (PinName)(adc_pins[i] | adc_pin_alt[j]);
             // Check if pin is mapped.
             if ((PinName)pinmap_find_peripheral(pin, PinMap_ADC) == NC) {
                 break;
@@ -222,13 +223,13 @@ int AdvancedADC::begin(uint32_t resolution, uint32_t sample_rate, size_t n_sampl
 
     // All channels must share the same instance; if not, bail out.
     if (ch_init < n_channels) {
-        return 0;
+        return false;
     }
 
     // Allocate DMA buffer pool.
     descr->pool = new DMAPool<Sample>(n_samples, n_channels, n_buffers);
     if (descr->pool == nullptr) {
-        return 0;
+        return false;
     }
 
     // Allocate the two DMA buffers used for double buffering.
@@ -236,13 +237,13 @@ int AdvancedADC::begin(uint32_t resolution, uint32_t sample_rate, size_t n_sampl
     descr->dmabuf[1] = descr->pool->alloc(DMA_BUFFER_WRITE);
 
     // Init and config DMA.
-    if (hal_dma_config(&descr->dma, descr->dma_irqn, DMA_PERIPH_TO_MEMORY) < 0) {
-        return 0;
+    if (!hal_dma_config(&descr->dma, descr->dma_irqn, DMA_PERIPH_TO_MEMORY)) {
+        return false;
     }
 
     // Init and config ADC.
-    if (hal_adc_config(&descr->adc, ADC_RES_LUT[resolution], descr->tim_trig, adc_pins, n_channels, sample_time) < 0) {
-        return 0;
+    if (!hal_adc_config(&descr->adc, ADC_RES_LUT[resolution], descr->tim_trig, adc_pins, n_channels, sample_time)) {
+        return false;
     }
 
     // Link DMA handle to ADC handle.
@@ -252,21 +253,21 @@ int AdvancedADC::begin(uint32_t resolution, uint32_t sample_rate, size_t n_sampl
         return this->start(sample_rate);
     }
 
-    return 1;
+    return true;
 }
 
-int AdvancedADC::start(uint32_t sample_rate){
+bool AdvancedADC::start(uint32_t sample_rate) {
     if (descr == nullptr || descr->pool == nullptr) {
         // ADC not initialized, call begin() first
-        return 0;
+        return false;
     }
 
     // Stop any ongoing conversion
     adc_descr_stop(descr);
 
     // Restart ADC with DMA
-    if (HAL_ADC_Start_DMA(&descr->adc, (uint32_t *) descr->dmabuf[0]->data(), descr->dmabuf[0]->size()) != HAL_OK) {
-        return 0;
+    if (HAL_ADC_Start_DMA(&descr->adc, (uint32_t *)descr->dmabuf[0]->data(), descr->dmabuf[0]->size()) != HAL_OK) {
+        return false;
     }
 
     // Re/enable DMA double buffer mode
@@ -280,27 +281,27 @@ int AdvancedADC::start(uint32_t sample_rate){
     // Start the ADC timer. Note, if dual ADC mode is enabled,
     // this will also start ADC2.
     if (HAL_TIM_Base_Start(&descr->tim) != HAL_OK) {
-        return 0;
+        return false;
     }
 
-    return 1;
+    return true;
 }
 
-int AdvancedADC::stop() {
+bool AdvancedADC::stop() {
     if (descr == nullptr) {
-        return 0;
+        return false;
     }
     adc_descr_stop(descr);
-    return 1;
+    return true;
 }
 
-int AdvancedADC::end() {
+bool AdvancedADC::end() {
     if (descr == nullptr) {
-        return 0;
+        return false;
     }
     adc_descr_deinit(descr);
     descr = nullptr;
-    return 1;
+    return true;
 }
 
 void AdvancedADC::clear() {
@@ -350,28 +351,28 @@ AdvancedADC::~AdvancedADC() {
     adc_descr_deinit(descr);
 }
 
-int AdvancedADCDual::begin(uint32_t resolution, uint32_t sample_rate, size_t n_samples,
-                           size_t n_buffers, adc_sample_time_t sample_time) {
+bool AdvancedADCDual::begin(uint32_t resolution, uint32_t sample_rate, size_t n_samples,
+                            size_t n_buffers, adc_sample_time_t sample_time) {
     // The two ADCs must have the same number of channels.
     if (adc1.channels() != adc2.channels()) {
-        return 0;
+        return false;
     }
 
     // Configure the ADCs.
     if (!adc1.begin(resolution, sample_rate, n_samples, n_buffers, false, sample_time)) {
-        return 0;
+        return false;
     }
 
     if (!adc2.begin(resolution, sample_rate, n_samples, n_buffers, false, sample_time)) {
         adc1.stop();
-        return 0;
+        return false;
     }
 
     // Note only ADC1 (master) and ADC2 can be used in dual mode.
     if (adc1.id() != 1 || adc2.id() != 2) {
         adc1.stop();
         adc2.stop();
-        return 0;
+        return false;
     }
 
     // Enable dual ADC mode.
@@ -381,19 +382,19 @@ int AdvancedADCDual::begin(uint32_t resolution, uint32_t sample_rate, size_t n_s
     return adc1.start(sample_rate);
 }
 
-int AdvancedADCDual::stop() {
+bool AdvancedADCDual::stop() {
     adc1.stop();
     adc2.stop();
     // Disable dual mode.
     hal_adc_enable_dual_mode(false);
-    return 1;
+    return true;
 }
 
-int AdvancedADCDual::end() {
+bool AdvancedADCDual::end() {
     stop();
     adc1.end();
     adc2.end();
-    return 1;
+    return true;
 }
 
 AdvancedADCDual::~AdvancedADCDual() {
@@ -405,7 +406,7 @@ extern "C" {
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *adc) {
     adc_descr_t *descr = adc_descr_get(adc->Instance);
     // NOTE: CT bit is inverted, to get the DMA buffer that's Not currently in use.
-    size_t ct = ! hal_dma_get_ct(&descr->dma);
+    size_t ct = !hal_dma_get_ct(&descr->dma);
 
     // Timestamp the buffer.
     descr->dmabuf[ct]->timestamp(us_ticker_read());

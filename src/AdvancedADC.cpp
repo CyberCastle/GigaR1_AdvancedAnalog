@@ -148,6 +148,10 @@ bool AdvancedADC::begin(uint32_t resolution, uint32_t sample_rate, size_t n_samp
 
     // Clear ALTx pin.
     for (size_t i = 0; i < n_channels; i++) {
+        // Clear the ALTx bits from the pin name.
+        // This is necessary to ensure that the pin is correctly mapped to the ADC.
+        // This is done to avoid issues with alternate function pins.
+        // For example, if the pin is PA_0C_ALT0, we want to use PA_0C without the ALT0.
         adc_pins[i] = (PinName)(adc_pins[i] & ~(ADC_PIN_ALT_MASK));
     }
 
@@ -276,7 +280,9 @@ bool AdvancedADC::start(uint32_t sample_rate) {
     HAL_NVIC_EnableIRQ(descr->dma_irqn);
 
     // Initialize and configure the ADC timer
-    hal_tim_config(&descr->tim, sample_rate);
+    if (!hal_tim_config(&descr->tim, sample_rate)) {
+        return false;
+    }
 
     // Start the ADC timer. Note, if dual ADC mode is enabled,
     // this will also start ADC2.

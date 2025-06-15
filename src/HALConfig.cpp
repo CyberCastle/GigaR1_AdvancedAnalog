@@ -61,7 +61,7 @@ bool hal_tim_config(TIM_HandleTypeDef *tim, uint32_t t_freq) {
 
     // Init and config the timer.
     __HAL_TIM_CLEAR_FLAG(tim, TIM_FLAG_UPDATE);
-    if ((HAL_TIM_PWM_Init(tim) != HAL_OK) || (HAL_TIMEx_MasterConfigSynchronization(tim, &sConfig) != HAL_OK)) {
+    if ((HAL_TIM_Base_Init(tim) != HAL_OK) || (HAL_TIMEx_MasterConfigSynchronization(tim, &sConfig) != HAL_OK)) {
         return false;
     }
     return true;
